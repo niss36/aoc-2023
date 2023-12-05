@@ -88,20 +88,19 @@ struct Almanac {
 }
 
 impl Almanac {
-    fn convert_all_seeds(&self) -> Vec<usize> {
-        self.seeds
-            .iter()
-            .map(|&seed| {
-                let soil = apply_all(&self.seed_to_soil_maps, seed);
-                let fertilizer = apply_all(&self.soil_to_fertilizer_maps, soil);
-                let water = apply_all(&self.fertilizer_to_water_maps, fertilizer);
-                let light = apply_all(&self.water_to_light_maps, water);
-                let temperature = apply_all(&self.light_to_temperature_maps, light);
-                let humidity = apply_all(&self.temperature_to_humidity_maps, temperature);
+    fn convert_seed(&self, seed: usize) -> usize {
+        let soil = apply_all(&self.seed_to_soil_maps, seed);
+        let fertilizer = apply_all(&self.soil_to_fertilizer_maps, soil);
+        let water = apply_all(&self.fertilizer_to_water_maps, fertilizer);
+        let light = apply_all(&self.water_to_light_maps, water);
+        let temperature = apply_all(&self.light_to_temperature_maps, light);
+        let humidity = apply_all(&self.temperature_to_humidity_maps, temperature);
 
-                apply_all(&self.humidity_to_location_maps, humidity)
-            })
-            .collect()
+        apply_all(&self.humidity_to_location_maps, humidity)
+    }
+
+    fn convert_all_seeds(&self) -> impl Iterator<Item = usize> + '_ {
+        self.seeds.iter().map(|&seed| self.convert_seed(seed))
     }
 
     fn convert_all_seeds_2(&self) -> impl Iterator<Item = usize> + '_ {
@@ -111,16 +110,7 @@ impl Almanac {
             .tuples()
             .flat_map(|(&start, &length)| start..start + length);
 
-        all_seeds.map(|seed| {
-            let soil = apply_all(&self.seed_to_soil_maps, seed);
-            let fertilizer = apply_all(&self.soil_to_fertilizer_maps, soil);
-            let water = apply_all(&self.fertilizer_to_water_maps, fertilizer);
-            let light = apply_all(&self.water_to_light_maps, water);
-            let temperature = apply_all(&self.light_to_temperature_maps, light);
-            let humidity = apply_all(&self.temperature_to_humidity_maps, temperature);
-
-            apply_all(&self.humidity_to_location_maps, humidity)
-        })
+        all_seeds.map(|seed| self.convert_seed(seed))
     }
 }
 
@@ -186,7 +176,6 @@ fn part1(input: &[String]) -> Result<usize, AocError> {
 
     almanac
         .convert_all_seeds()
-        .into_iter()
         .min()
         .ok_or(AocError::InvalidAlmanac)
 }
